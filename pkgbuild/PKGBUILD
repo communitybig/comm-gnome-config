@@ -1,12 +1,12 @@
 # Maintainer: Tales A. Mendonça <talesam@gmail.com>
 
-pkgname=pkgbuild-template
-pkgdesc="Package template for Communitybig"
+pkgname=comm-gnome-config
+pkgdesc="Package configuration Desktop Gnome"
 # Uncomment and edit the following lines as needed
-#depends=('')
+depends=('comm-skel' 'big-shell-orchis')
 #makedepends=('')
 #optdepends=('')
-#conflicts=('')
+conflicts=('big-skel')
 #provides=('')
 #replaces=('')
 pkgver=$(date +%y.%m.%d)
