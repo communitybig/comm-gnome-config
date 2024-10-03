@@ -3,7 +3,7 @@
 pkgname=comm-gnome-config
 pkgdesc="Package configuration Desktop Gnome"
 # Uncomment and edit the following lines as needed
-depends=('comm-skel' 'big-shell-orchis')
+depends=('comm-skel' 'comm-shell-orchis')
 #makedepends=('')
 #optdepends=('')
 conflicts=('big-skel')
