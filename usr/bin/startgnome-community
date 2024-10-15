@@ -71,7 +71,7 @@ if [ -e /usr/bin/startbiglive ]; then
     rm -f "$HOME/Empty Bash" "$HOME/Empty Desktop File.desktop" "$HOME/Empty File"
 
     # Updates user directories
-    xdg-user-dirs-update
+    LANG=$LANG xdg-user-dirs-update --force
 fi
 
 # Execute gnome-session
