@@ -64,6 +64,12 @@ gsettings set org.gnome.desktop.media-handling automount true
 
 ### Execute in LiveCD
 if [ -e /usr/bin/startbiglive ]; then
+    # Revert variables to Gnome
+    DESKTOP_SESSION=gnome
+    XDG_SESSION_DESKTOP=gnome
+    XDG_CURRENT_DESKTOP=GNOME
+    GDMSESSION=gnome
+    
     # Enables basic, unencrypted password storage in Chromium-based browsers
     sudo sed -i '/--password-store=basic/!s/\(exec \/usr\/lib\/brave-browser\/brave "$@" $USER_FLAGS\)$/\1 --password-store=basic/' /usr/bin/brave
 
