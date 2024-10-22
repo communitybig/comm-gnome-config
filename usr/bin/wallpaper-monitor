@@ -3,16 +3,37 @@
 exec &> /tmp/wallpaper-monitor.log
 
 while true; do
-    # Get current GNOME user
-    user=$(ps aux | grep "[g]nome-session" | head -n1 | awk '{print $1}')
+    # Get the active session ID that is not gdm
+    session_id=$(loginctl list-sessions | awk '$3 != "gdm" && /seat[0-9]+/{print $1; exit}')
+    if [ -z "$session_id" ]; then
+        echo "No active session found"
+        sleep 5
+        continue
+    fi
+
+    # Get the username of that session
+    user=$(loginctl show-session $session_id -p Name --value)
     
     if [ ! -z "$user" ]; then
-        display=$(w -h | awk -v user="$user" '$1 == user {print $3}' | grep -v "tty" | head -n1)
-        export DBUS_SESSION_BUS_ADDRESS=$(grep -z DBUS_SESSION_BUS_ADDRESS /proc/$(pgrep -u "$user" gnome-session)/environ | cut -d= -f2-)
-        
+        # Get the display of the session
+        display=$(loginctl show-session $session_id -p Display --value)
+        if [ -z "$display" ]; then
+            display=":0"
+        fi
+
+        # Get the PID of the user's gnome-session process
+        pid=$(pgrep -u "$user" gnome-session | head -n1)
+        if [ -n "$pid" ] && [ -e "/proc/$pid/environ" ]; then
+            export DBUS_SESSION_BUS_ADDRESS=$(tr '\0' '\n' < /proc/$pid/environ | grep '^DBUS_SESSION_BUS_ADDRESS=' | cut -d= -f2-)
+        else
+            echo "Could not find DBUS_SESSION_BUS_ADDRESS"
+            sleep 5
+            continue
+        fi
+
         old_wallpaper=""
         while true; do
-            new_wallpaper=$(su - $user -c "DISPLAY=$display dconf read /org/gnome/desktop/background/picture-uri")
+            new_wallpaper=$(su - "$user" -c "DISPLAY=$display dconf read /org/gnome/desktop/background/picture-uri")
             
             if [ "$new_wallpaper" != "$old_wallpaper" ]; then
                 /usr/bin/comm-update-gdm-wallpaper
@@ -20,6 +41,8 @@ while true; do
             fi
             sleep 5
         done
+    else
+        echo "User not found for session $session_id"
     fi
     sleep 5
 done
