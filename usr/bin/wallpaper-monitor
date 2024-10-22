@@ -1,0 +1,25 @@
+#!/bin/bash
+
+exec &> /tmp/wallpaper-monitor.log
+
+while true; do
+    # Get current GNOME user
+    user=$(ps aux | grep "[g]nome-session" | head -n1 | awk '{print $1}')
+    
+    if [ ! -z "$user" ]; then
+        display=$(w -h | awk -v user="$user" '$1 == user {print $3}' | grep -v "tty" | head -n1)
+        export DBUS_SESSION_BUS_ADDRESS=$(grep -z DBUS_SESSION_BUS_ADDRESS /proc/$(pgrep -u "$user" gnome-session)/environ | cut -d= -f2-)
+        
+        old_wallpaper=""
+        while true; do
+            new_wallpaper=$(su - $user -c "DISPLAY=$display dconf read /org/gnome/desktop/background/picture-uri")
+            
+            if [ "$new_wallpaper" != "$old_wallpaper" ]; then
+                /usr/bin/comm-update-gdm-wallpaper
+                old_wallpaper="$new_wallpaper"
+            fi
+            sleep 5
+        done
+    fi
+    sleep 5
+done

@@ -3,12 +3,12 @@
 #----------------------------
 cursor-theme='Bibata-Modern-Classic'
 cursor-size=24
-icon-theme='biglinux-icons-material-dark'
+icon-theme='bigicons-papient-dark'
 show-battery-percentage=false
 clock-show-seconds=false
 clock-show-weekday=true
 clock-format='24h'
-font-name='Lato Medium 12'
+font='Noto Sans Nerd Font Medium 11'
 font-antialiasing='grayscale'
 font-hinting='slight'
 text-scaling-factor=1.0
@@ -37,7 +37,7 @@ speed=0.0
 [org/gnome/desktop/peripherals/touchpad]
 #---------------------------------------
 speed=0.0
-tap-to-click=false
+tap-to-click=true
 natural-scroll=true
 two-finger-scrolling-enabled=true
 disable-while-typing=true
@@ -62,7 +62,7 @@ idle-delay=300
 [org/gnome/settings-daemon/plugins/color]
 #----------------------------------------
 night-light-enabled=false
-night-light-temperature=uint32 2700
+night-light-temperature=uint32 4000
 night-light-schedule-automatic=true
 night-light-schedule-from=20.0
 night-light-schedule-to=6.0
@@ -70,8 +70,8 @@ night-light-schedule-to=6.0
 #----- Login Screen ----
 [org/gnome/login-screen]
 #-----------------------
-logo='/etc/gdm-logo'
+logo='/etc/gdm-logo.png'
 banner-message-enable=true
-banner-message-text='BigLinux Community'
+banner-message-text='BigCommunity'
 disable-restart-buttons=false
 disable-user-list=false

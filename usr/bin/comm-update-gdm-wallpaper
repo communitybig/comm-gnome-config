@@ -1,0 +1,64 @@
+#!/bin/bash
+
+exec &> /tmp/wallpaper-update.log
+
+# Create temporary directory and setup cleanup
+temp_dir=$(mktemp -d)
+trap 'rm -rf "$temp_dir"' EXIT
+
+# Get user session information
+current_user=$(who | awk '!/ tty/ {print $1}' | head -1)
+display=$(w -h | awk -v user="$current_user" '$1 == user {print $3}' | head -n1)
+
+# Get wallpaper file
+wallpaper=$(su - "$current_user" -c "DISPLAY=$display dconf read /org/gnome/desktop/background/picture-uri" | tr -d "'")
+wallpaper_file=${wallpaper#file://}
+
+# Copy and extract resources
+cd "$temp_dir"
+cp /usr/share/gnome-shell/gnome-shell-theme.gresource .
+
+for r in $(gresource list gnome-shell-theme.gresource); do
+    gresource extract gnome-shell-theme.gresource "$r" > "${r#\/org\/gnome\/shell\/theme\/}"
+done
+
+# Convert or copy wallpaper
+if [[ $wallpaper_file == *.avif ]]; then
+    magick "$wallpaper_file" fundo.jpg
+else
+    cp -f "$wallpaper_file" fundo.jpg
+fi
+
+# Create resource XML
+cat > gnome-shell-theme.gresource.xml <<EOL
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/org/gnome/shell/theme">
+    <file>fundo.jpg</file>
+    <file>calendar-today-light.svg</file>
+    <file>calendar-today.svg</file>
+    <file>checkbox-focused.svg</file>
+    <file>checkbox-off-focused-light.svg</file>
+    <file>checkbox-off-focused.svg</file>
+    <file>checkbox-off-light.svg</file>
+    <file>checkbox-off.svg</file>
+    <file>checkbox.svg</file>
+    <file>gnome-shell-dark.css</file>
+    <file>gnome-shell-high-contrast.css</file>
+    <file>gnome-shell-light.css</file>
+    <file>gnome-shell-start.svg</file>
+    <file>pad-osd.css</file>
+    <file>process-working-dark.svg</file>
+    <file>process-working-light.svg</file>
+    <file>toggle-off-light.svg</file>
+    <file>toggle-off.svg</file>
+    <file>toggle-on-light.svg</file>
+    <file>toggle-on.svg</file>
+    <file>workspace-placeholder.svg</file>
+  </gresource>
+</gresources>
+EOL
+
+# Compile and install
+glib-compile-resources gnome-shell-theme.gresource.xml
+cp -f gnome-shell-theme.gresource /usr/share/gnome-shell/

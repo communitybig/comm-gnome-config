@@ -1,0 +1,12 @@
+[Unit]
+Description=Monitor GNOME wallpaper changes
+After=graphical.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/wallpaper-monitor
+Restart=on-failure
+User=root
+
+[Install]
+WantedBy=graphical.target
