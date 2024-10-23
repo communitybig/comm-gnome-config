@@ -1,6 +1,9 @@
 #!/bin/sh
 # /usr/share/libalpm/scripts/comm-changend-faces
 
+# Test if hook is being triggered
+touch /tmp/hook-was-triggered
+
 # Directories
 originDir="/usr/share/pixmaps/faces"
 destDir="/usr/share/pixmaps/.faces-gnome"
@@ -22,11 +25,17 @@ if [ ! -d "$destDir" ]; then
     log_msg "Destination directory created: $destDir"
 fi
 
-# Move current files if they exist
-if [ "$(ls -A $originDir 2>/dev/null)" ]; then
-    mv "$originDir"/* "$destDir"/ 2>/dev/null
-    log_msg "Files moved to $destDir"
-fi
+# Move only non-big files
+for file in "$originDir"/*; do
+    if [ -f "$file" ]; then
+        filename=$(basename "$file")
+        # Se o nome do arquivo não começa com "big" e não é um link simbólico
+        if [[ ! "$filename" == big* ]] && [ ! -L "$file" ]; then
+            mv "$file" "$destDir"/ 2>/dev/null
+            log_msg "Moved: $filename"
+        fi
+    fi
+done
 
 log_msg "Operation completed successfully"
 exit 0
