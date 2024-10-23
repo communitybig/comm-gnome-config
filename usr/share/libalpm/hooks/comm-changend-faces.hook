@@ -1,0 +1,10 @@
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Target = gnome-control-center
+
+[Action]
+Description = Moving GNOME faces to custom directory
+When = PostTransaction
+Exec = /usr/share/libalpm/scripts/comm-changend-faces

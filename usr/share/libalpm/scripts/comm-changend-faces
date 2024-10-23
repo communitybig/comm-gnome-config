@@ -1,0 +1,32 @@
+#!/bin/sh
+# /usr/share/libalpm/scripts/comm-changend-faces
+
+# Directories
+originDir="/usr/share/pixmaps/faces"
+destDir="/usr/share/pixmaps/.faces-gnome"
+
+# Function for logging
+log_msg() {
+    echo "[comm-changend-faces] $1"
+}
+
+# Check if origin directory exists
+if [ ! -d "$originDir" ]; then
+    log_msg "Origin directory not found: $originDir"
+    exit 1
+fi
+
+# Create destination directory if it doesn't exist
+if [ ! -d "$destDir" ]; then
+    mkdir -p "$destDir"
+    log_msg "Destination directory created: $destDir"
+fi
+
+# Move current files if they exist
+if [ "$(ls -A $originDir 2>/dev/null)" ]; then
+    mv "$originDir"/* "$destDir"/ 2>/dev/null
+    log_msg "Files moved to $destDir"
+fi
+
+log_msg "Operation completed successfully"
+exit 0
