@@ -16,8 +16,10 @@ if [ "$LANGUAGE" = "" ]; then
     [[ -z $LANGUAGE ]] && export LANGUAGE=$LANG
 fi
 
+
 # Use Vulkaninfo to verify if only llvmpipe as vulkan render
 # Output true if using llvmpipe and false if using anotherr vulkan render
+# Block commented out due to application crash.
 #if vulkaninfo --summary 2> /dev/null | grep 'deviceName' | grep -vq 'llvmpipe'; then
 #    unset QSG_RENDER_LOOP
 #    # Temporarily forcing GTK Renderer GL since 2024/10/11
