@@ -9,7 +9,20 @@
 [[ -z $ELECTRON_OZONE_PLATFORM_HINT ]] && export ELECTRON_OZONE_PLATFORM_HINT="auto"
 
 # Check system theme to apply if the QT theme is clade or dark
-/usr/share/sync-kde-and-gtk-places/sync-gnome-theme-to-qt.sh
+if [ -f "/usr/share/sync-kde-and-gtk-places/sync-gnome-theme-to-qt.sh" ]; then
+    # Tenta executar 3 vezes com intervalo de 1 segundo
+    for i in {1..3}; do
+        if /usr/share/sync-kde-and-gtk-places/sync-gnome-theme-to-qt.sh; then
+            logger "sync-gnome-theme-to-qt.sh executed successfully"
+            break
+        else
+            logger "Failed to execute sync-gnome-theme-to-qt.sh, attempt $i"
+            sleep 0.5
+        fi
+    done
+else
+    logger "sync-gnome-theme-to-qt.sh not found"
+fi
 
 # Force language
 if [ "$LANGUAGE" = "" ]; then
@@ -36,6 +49,12 @@ fi
     fi
 #fi
 
+# Checks if the shell has already been changed
+if [ ! -f "$HOME/.biglinux-shell-changed" ]; then
+    biglinux-change-default-shell bash-power
+    touch "$HOME/.biglinux-shell-changed"
+fi
+
 # Faster AMD GPU
 [[ -z $RADV_PERFTEST ]] && export RADV_PERFTEST="sam,nggc,ext_ms"
 
@@ -57,11 +76,11 @@ dconfPath=/org/gnome/desktop/interface/cursor-theme
 # Get the current cursor theme
 currentTheme=$(dconf read $dconfPath)
 
-# Check if the current theme is 'Breeze_Light'
-if [ "$currentTheme" == "'Breeze_Light'" ]; then
-    # Change the cursor theme to 'Bibata-Modern-Classic'
-    dconf write $dconfPath "'Bibata-Modern-Classic'"
-fi
+# # Check if the current theme is 'Breeze_Light'
+# if [ "$currentTheme" == "'Breeze_Light'" ]; then
+#     # Change the cursor theme to 'Bibata-Modern-Classic'
+#     dconf write $dconfPath "'Bibata-Modern-Classic'"
+# fi
 
 # Enable automatic mounting of devices
 gsettings set org.gnome.desktop.media-handling automount true
