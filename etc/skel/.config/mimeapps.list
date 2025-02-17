@@ -129,7 +129,7 @@ image/x-portable-anymap=org.gnome.Loupe.desktop
 image/x-qoi=org.gnome.Loupe.desktop
 image/svg+xml-compressed=org.gnome.Loupe.desktop
 image/heic=org.gnome.Loupe.desktop
-application/pdf=org.gnome.Evince.desktop
+application/pdf=org.gnome.Papers.desktop
 
 [Added Associations]
 x-scheme-handler/tg=userapp-Telegram Desktop-GZVBW1.desktop;
@@ -161,5 +161,5 @@ image/heic=org.gnome.Loupe.desktop;
 image/jxl=org.gnome.Loupe.desktop;
 x-scheme-handler/sms=org.gnome.Shell.Extensions.GSConnect.desktop;
 x-scheme-handler/tel=org.gnome.Shell.Extensions.GSConnect.desktop;
-application/pdf=org.gnome.Evince.desktop;
+application/pdf=org.gnome.Papers.desktop;
 image/heif=org.gnome.Loupe.desktop;
