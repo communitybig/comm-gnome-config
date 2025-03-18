@@ -1,0 +1,11 @@
+[Trigger]
+Type = Package
+Operation = Install
+Operation = Upgrade
+Target = gnome-shell
+
+[Action]
+Description = Updating custom GNOME Shell theme...
+Depends = python
+When = PostTransaction
+Exec = /usr/bin/comm-update-gdm-wallpaper

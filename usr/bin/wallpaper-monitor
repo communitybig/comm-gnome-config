@@ -1,48 +1,208 @@
-#!/bin/bash
+#!/usr/bin/env python3
 
-exec &> /tmp/wallpaper-monitor.log
+"""
+Wallpaper Monitor Service
+This script monitors the user's desktop wallpaper and updates the GDM login screen
+when the wallpaper changes.
+"""
 
-while true; do
-    # Get the active session ID that is not gdm
-    session_id=$(loginctl list-sessions | awk '$3 != "gdm" && /seat[0-9]+/{print $1; exit}')
-    if [ -z "$session_id" ]; then
-        echo "No active session found"
-        sleep 5
-        continue
-    fi
+import os
+import sys
+import time
+import subprocess
+import logging
+import signal
+from pathlib import Path
 
-    # Get the username of that session
-    user=$(loginctl show-session $session_id -p Name --value)
-    
-    if [ ! -z "$user" ]; then
-        # Get the display of the session
-        display=$(loginctl show-session $session_id -p Display --value)
-        if [ -z "$display" ]; then
-            display=":0"
-        fi
+# Configure logging
+logging.basicConfig(
+    filename='/var/log/wallpaper-monitor.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
-        # Get the PID of the user's gnome-session process
-        pid=$(pgrep -u "$user" gnome-session | head -n1)
-        if [ -n "$pid" ] && [ -e "/proc/$pid/environ" ]; then
-            export DBUS_SESSION_BUS_ADDRESS=$(tr '\0' '\n' < /proc/$pid/environ | grep '^DBUS_SESSION_BUS_ADDRESS=' | cut -d= -f2-)
-        else
-            echo "Could not find DBUS_SESSION_BUS_ADDRESS"
-            sleep 5
-            continue
-        fi
+# Global variable for execution control
+running = True
 
-        old_wallpaper=""
-        while true; do
-            new_wallpaper=$(su - "$user" -c "DISPLAY=$display dconf read /org/gnome/desktop/background/picture-uri")
+def signal_handler(sig, frame):
+    """Signal handler for safe shutdown"""
+    global running
+    logging.info(f"Signal received: {sig}")
+    running = False
+
+def run_command(cmd, shell=False):
+    """Execute command and return output or None on error"""
+    try:
+        if shell:
+            result = subprocess.run(cmd, shell=True, check=True, text=True, capture_output=True)
+        else:
+            result = subprocess.run(cmd, check=True, text=True, capture_output=True)
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error executing command: {cmd}")
+        logging.error(f"Error: {e}")
+        logging.error(f"Output: {e.stderr}")
+        return None
+    except Exception as e:
+        logging.error(f"Unexpected error executing: {cmd}")
+        logging.error(f"Exception: {str(e)}")
+        return None
+
+def get_active_session():
+    """Get active session that isn't gdm"""
+    try:
+        output = run_command(['loginctl', 'list-sessions'])
+        if not output:
+            return None
             
-            if [ "$new_wallpaper" != "$old_wallpaper" ]; then
-                /usr/bin/comm-update-gdm-wallpaper
-                old_wallpaper="$new_wallpaper"
-            fi
-            sleep 5
-        done
-    else
-        echo "User not found for session $session_id"
-    fi
-    sleep 5
-done
+        for line in output.splitlines()[1:]:  # Skip header
+            parts = line.split()
+            if len(parts) >= 3 and parts[2] != "gdm" and "seat" in line:
+                return parts[0]  # Session ID
+                
+        return None
+    except Exception as e:
+        logging.error(f"Error getting active session: {str(e)}")
+        return None
+
+def get_session_user(session_id):
+    """Get user from session"""
+    if not session_id:
+        return None
+    return run_command(['loginctl', 'show-session', session_id, '-p', 'Name', '--value'])
+
+def get_session_display(session_id):
+    """Get display from session"""
+    if not session_id:
+        return None
+    display = run_command(['loginctl', 'show-session', session_id, '-p', 'Display', '--value'])
+    return display if display else ":0"
+
+def get_dbus_address(user):
+    """Get DBUS address for communication with user session"""
+    if not user:
+        return None
+        
+    try:
+        pid = run_command(f"pgrep -u {user} gnome-session | head -n1", shell=True)
+        if not pid:
+            return None
+            
+        environ_file = f"/proc/{pid}/environ"
+        if not os.path.exists(environ_file):
+            return None
+            
+        with open(environ_file, 'rb') as f:
+            environ = f.read().split(b'\0')
+            
+        for var in environ:
+            var_str = var.decode('utf-8', errors='ignore')
+            if var_str.startswith('DBUS_SESSION_BUS_ADDRESS='):
+                return var_str.split('=', 1)[1]
+                
+        return None
+    except Exception as e:
+        logging.error(f"Error getting DBUS address: {str(e)}")
+        return None
+
+def get_user_wallpaper(user, display, dbus_address):
+    """Get user's current wallpaper"""
+    if not user or not display or not dbus_address:
+        return None
+        
+    try:
+        cmd = f"su - {user} -c 'DISPLAY={display} DBUS_SESSION_BUS_ADDRESS=\"{dbus_address}\" dconf read /org/gnome/desktop/background/picture-uri'"
+        wallpaper_uri = run_command(cmd, shell=True)
+        
+        # If not found, try picture-uri-dark (for dark themes)
+        if not wallpaper_uri or wallpaper_uri == "''":
+            cmd = f"su - {user} -c 'DISPLAY={display} DBUS_SESSION_BUS_ADDRESS=\"{dbus_address}\" dconf read /org/gnome/desktop/background/picture-uri-dark'"
+            wallpaper_uri = run_command(cmd, shell=True)
+            
+        if not wallpaper_uri or wallpaper_uri == "''":
+            return None
+            
+        return wallpaper_uri
+    except Exception as e:
+        logging.error(f"Error getting wallpaper: {str(e)}")
+        return None
+
+def main():
+    """Main function to monitor wallpaper changes"""
+    global running
+    
+    # Configure signal handling
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    
+    # Check if running as root
+    if os.geteuid() != 0:
+        logging.error("This script must be run as root")
+        print("This script must be run as root")
+        sys.exit(1)
+    
+    logging.info("Starting wallpaper monitoring")
+    
+    while running:
+        try:
+            # Get active session
+            session_id = get_active_session()
+            if not session_id:
+                logging.debug("No active session found")
+                time.sleep(5)
+                continue
+            
+            # Get session user
+            user = get_session_user(session_id)
+            if not user:
+                logging.debug(f"No user found for session {session_id}")
+                time.sleep(5)
+                continue
+                
+            # Get session display
+            display = get_session_display(session_id)
+            
+            # Get DBUS address
+            dbus_address = get_dbus_address(user)
+            if not dbus_address:
+                logging.debug(f"Could not get DBUS address for user {user}")
+                time.sleep(5)
+                continue
+                
+            logging.info(f"Monitoring wallpaper for user {user} in session {session_id}")
+            
+            old_wallpaper = None
+            
+            # Monitor wallpaper changes for this user
+            while running:
+                try:
+                    # Check if session is still active
+                    if not get_active_session() == session_id:
+                        logging.info(f"Session {session_id} is no longer active")
+                        break
+                        
+                    # Get current wallpaper
+                    new_wallpaper = get_user_wallpaper(user, display, dbus_address)
+                    
+                    # If changed, update theme
+                    if new_wallpaper != old_wallpaper:
+                        logging.info(f"Wallpaper changed to: {new_wallpaper}")
+                        result = run_command(['/usr/bin/comm-update-gdm-wallpaper'])
+                        if result is not None:
+                            old_wallpaper = new_wallpaper
+                            
+                    time.sleep(5)
+                    
+                except Exception as e:
+                    logging.error(f"Error during monitoring: {str(e)}")
+                    break
+                    
+        except Exception as e:
+            logging.error(f"Error in main loop: {str(e)}")
+            
+        time.sleep(5)
+    
+    logging.info("Stopping wallpaper monitoring")
+
+if __name__ == "__main__":
+    main()
