@@ -3,12 +3,25 @@
 
 # Function executed before package installation
 pre_install() {
-    # Nothing special needed before installation
+    # Nada especial necessário antes da instalação
     :
 }
 
 # Function executed after package installation
 post_install() {
+    # Backup do tema original se ainda não existir
+    if [ ! -e "/usr/share/gnome-shell/gnome-shell-theme.gresource.default" ]; then
+        if [ -e "/usr/share/gnome-shell/gnome-shell-theme.gresource" ]; then
+            cp -f "/usr/share/gnome-shell/gnome-shell-theme.gresource" "/usr/share/gnome-shell/gnome-shell-theme.gresource.default"
+        fi
+    fi
+    
+    # Aplicar o tema personalizado
+    if [ -e "/usr/share/gnome-shell/gnome-shell-theme.gresource.big" ]; then
+        cp -f "/usr/share/gnome-shell/gnome-shell-theme.gresource.big" "/usr/share/gnome-shell/gnome-shell-theme.gresource"
+        chmod 644 "/usr/share/gnome-shell/gnome-shell-theme.gresource"
+    fi
+    
     # Enable and start the service
     systemctl enable wallpaper-monitor.service
     systemctl start wallpaper-monitor.service
@@ -16,12 +29,18 @@ post_install() {
 
 # Function executed before package upgrade
 pre_upgrade() {
-    # Nothing special needed before upgrade
+    # Nada especial necessário antes da atualização
     :
 }
 
 # Function executed after package upgrade
 post_upgrade() {
+    # Aplicar o tema personalizado novamente
+    if [ -e "/usr/share/gnome-shell/gnome-shell-theme.gresource.big" ]; then
+        cp -f "/usr/share/gnome-shell/gnome-shell-theme.gresource.big" "/usr/share/gnome-shell/gnome-shell-theme.gresource"
+        chmod 644 "/usr/share/gnome-shell/gnome-shell-theme.gresource"
+    fi
+    
     systemctl daemon-reload
     systemctl restart wallpaper-monitor.service
 }
@@ -31,7 +50,7 @@ pre_remove() {
     systemctl stop wallpaper-monitor.service
     systemctl disable wallpaper-monitor.service
     
-    # Restore original theme if it exists
+    # Restaurar tema original se existir
     if [ -e "/usr/share/gnome-shell/gnome-shell-theme.gresource.default" ]; then
         cp -f "/usr/share/gnome-shell/gnome-shell-theme.gresource.default" "/usr/share/gnome-shell/gnome-shell-theme.gresource"
     fi
@@ -39,7 +58,7 @@ pre_remove() {
 
 # Function executed after package removal
 post_remove() {
-    # Clean up residual files
+    # Limpar arquivos residuais
     rm -f "/usr/share/gnome-shell/gnome-shell-theme.gresource.big"
     rm -f "/usr/share/gnome-shell/gnome-shell-theme.gresource.default"
 }
