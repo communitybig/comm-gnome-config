@@ -11,8 +11,6 @@ Operation = Upgrade
 Target = usr/share/gnome-shell/gnome-shell-theme.gresource
 
 [Action]
-Description = Updating custom GNOME Shell theme...
-Depends = python
-Depends = imagemagick
+Description = Atualizando tema do GNOME Shell...
 When = PostTransaction
-Exec = /usr/bin/comm-update-gdm-wallpaper
+Exec = /usr/share/libalpm/scripts/gnome-shell-theme-gdm
