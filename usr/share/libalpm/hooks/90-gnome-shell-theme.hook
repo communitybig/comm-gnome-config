@@ -4,8 +4,15 @@ Operation = Install
 Operation = Upgrade
 Target = gnome-shell
 
+[Trigger]
+Type = Path
+Operation = Install
+Operation = Upgrade
+Target = usr/share/gnome-shell/gnome-shell-theme.gresource
+
 [Action]
 Description = Updating custom GNOME Shell theme...
 Depends = python
+Depends = imagemagick
 When = PostTransaction
 Exec = /usr/bin/comm-update-gdm-wallpaper
