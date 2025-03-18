@@ -51,16 +51,29 @@ def run_command(cmd, shell=False):
 def get_active_session():
     """Get active session that isn't gdm"""
     try:
-        output = run_command(['loginctl', 'list-sessions'])
-        if not output:
-            return None
-            
-        for line in output.splitlines()[1:]:  # Skip header
-            parts = line.split()
-            if len(parts) >= 3 and parts[2] != "gdm" and "seat" in line:
-                return parts[0]  # Session ID
+        # Try up to 3 times with a short delay between attempts
+        for attempt in range(3):
+            try:
+                output = subprocess.run(['loginctl', 'list-sessions'], 
+                                     check=True, text=True, capture_output=True).stdout.strip()
                 
-        return None
+                for line in output.splitlines()[1:]:  # Skip header
+                    parts = line.split()
+                    if len(parts) >= 3 and parts[2] != "gdm" and "seat" in line:
+                        return parts[0]  # Session ID
+                        
+                return None
+                
+            except subprocess.CalledProcessError as e:
+                # If this isn't our last attempt, wait and try again
+                if attempt < 2:
+                    logging.warning(f"loginctl error (attempt {attempt+1}/3): {e.stderr.strip()}")
+                    time.sleep(2)  # Wait 2 seconds before retrying
+                else:
+                    # On the last attempt, log as error and return None
+                    logging.error(f"Failed to get session after 3 attempts: {e.stderr.strip()}")
+                    return None
+                    
     except Exception as e:
         logging.error(f"Error getting active session: {str(e)}")
         return None
