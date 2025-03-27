@@ -3,6 +3,7 @@ Type = Package
 Operation = Install
 Operation = Upgrade
 Target = gnome-shell
+Target = comm-gnome-config
 
 [Trigger]
 Type = Path
